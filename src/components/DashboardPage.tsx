@@ -6,83 +6,93 @@ import {
   Clock3,
   Fingerprint,
   LayoutDashboard,
+  MoonStar,
+  RefreshCw,
   ShieldCheck,
+  SunMedium,
   Users,
 } from 'lucide-react'
 import SubscriptionPanel from './SubscriptionPanel'
+import type { AuthSessionUser, DashboardPanel, DashboardSnapshot } from '../services/api'
 
 type Theme = 'dark' | 'light'
-
-type SessionUser = {
-  name: string
-  email: string
-}
-
-type ScanStatus = 'IN' | 'OUT'
-
-type ScanRecord = {
-  name: string
-  id: string
-  status: ScanStatus
-  time: string
-  gate: string
-}
 
 type DashboardPageProps = {
   theme: Theme
   onToggleTheme: () => void
   onNavigateHome: () => void
-  onOpenLogin: (prefillEmail?: string) => void
-  onOpenRegister: (prefillEmail?: string) => void
   onSignOut: () => void
-  sessionUser: SessionUser | null
-  liveScanTotal: string
-  verifiedEntries: string
-  accessZones: string
-  currentScan: ScanRecord
-  scanLog: ScanRecord[]
+  onRefresh: () => void
+  onSimulateScan: () => void
+  sessionUser: AuthSessionUser | null
+  summary: DashboardSnapshot | null
+  isLoading: boolean
+  errorMessage: string | null
 }
 
-const operationsPanels = [
+const fallbackPanels: DashboardPanel[] = [
   {
     title: 'Organization status',
-    value: 'All systems green',
-    description: 'Network, reader, and audit trail layers are online.',
+    value: 'Loading status',
+    description: 'The dashboard is waiting for the backend summary.',
   },
   {
     title: 'Active users',
-    value: '42 active',
-    description: 'Mock figure for this static dashboard preview.',
+    value: '0 active',
+    description: 'Operators will appear here after the API responds.',
   },
   {
     title: 'Security posture',
-    value: 'No incidents',
-    description: 'No alerts, denied access spikes, or sensor faults.',
+    value: 'Syncing',
+    description: 'No alerts, denied access spikes, or sensor faults yet.',
   },
   {
     title: 'Notification state',
-    value: 'Quiet',
-    description: 'The bell feed is idle and ready for new events.',
+    value: 'Waiting',
+    description: 'The bell feed will update once a live scan lands.',
   },
 ]
 
 function DashboardPage({
+  theme,
+  onToggleTheme,
   onNavigateHome,
-  onOpenLogin,
-  onOpenRegister,
   onSignOut,
+  onRefresh,
+  onSimulateScan,
   sessionUser,
-  liveScanTotal,
-  verifiedEntries,
-  accessZones,
-  scanLog,
+  summary,
+  isLoading,
+  errorMessage,
 }: DashboardPageProps) {
-  const signedInUser = sessionUser ?? {
+  const signedInUser = summary?.user ?? sessionUser ?? {
     name: 'Demo Operator',
     email: 'demo@logiclab.dev',
+    role: 'staff',
+    status: 'active',
+    lastLogin: null,
+    university: null,
   }
 
-  const recentScans = scanLog.slice(0, 5)
+  const metrics = summary?.counters ?? {
+    liveScanTotal: 0,
+    verifiedEntries: 0,
+    accessZones: 6,
+    activeUsers: 0,
+    responseTime: '0.0s',
+  }
+
+  const recentScans = summary?.recentScans ?? []
+  const operationsPanels = summary?.operationsPanels ?? fallbackPanels
+  const isConnected = summary?.connectionState === 'connected'
+  const lastUpdatedAt = summary?.lastUpdatedAt
+    ? new Date(summary.lastUpdatedAt).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : 'waiting for sync'
+  const ThemeIcon = theme === 'dark' ? SunMedium : MoonStar
+  const numberFormatter = new Intl.NumberFormat('en-US')
 
   return (
     <div className="app-shell min-h-screen overflow-hidden">
@@ -103,32 +113,39 @@ function DashboardPage({
                   The Logic Lab
                 </p>
 
-                <p className="text-sm font-medium text-[var(--text)]">
-                  Static dashboard preview
-                </p>
+                <p className="text-sm font-medium text-[var(--text)]">Connected dashboard</p>
               </div>
             </button>
 
             <div className="flex flex-wrap items-center gap-3">
-              <span className="status-chip green">
+              <span className={isConnected ? 'status-chip green' : 'status-chip purple'}>
                 <span className="h-2 w-2 rounded-full bg-current" />
-                Dashboard online
+                {isConnected ? 'Dashboard online' : isLoading ? 'Syncing feed' : 'Preview mode'}
               </span>
 
               <button
                 type="button"
-                onClick={() => onOpenLogin(signedInUser.email)}
+                onClick={onRefresh}
                 className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2 text-sm font-semibold text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
               >
-                Login
+                Refresh
               </button>
 
               <button
                 type="button"
-                onClick={() => onOpenRegister(signedInUser.email)}
+                onClick={onSimulateScan}
                 className="rounded-full bg-[linear-gradient(135deg,var(--accent-2),#7cf7a2)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5"
               >
-                Register
+                Simulate scan
+              </button>
+
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                <ThemeIcon className="h-5 w-5" />
               </button>
 
               <button
@@ -145,9 +162,7 @@ function DashboardPage({
         <main className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] xl:items-start">
           <div className="space-y-6">
             <section className="panel rounded-[2.25rem] p-5 sm:p-8">
-              <span className="section-kicker">
-                Dashboard / static preview
-              </span>
+              <span className="section-kicker">Dashboard / live view</span>
 
               <div className="mt-5 grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
                 <div className="space-y-4">
@@ -156,10 +171,10 @@ function DashboardPage({
                   </h1>
 
                   <p className="max-w-2xl text-sm leading-7 text-[var(--muted)] sm:text-lg sm:leading-8">
-                    This dashboard is static, but it stays connected to your
-                    app login flow. The cards below reflect the current scan
-                    activity, while the layout adapts from a stacked mobile
-                    view to a two-column workspace on larger screens.
+                    This dashboard now binds to the backend session and scan feed.
+                    The cards below update from the API, while the layout still
+                    adapts from a stacked mobile view to a two-column workspace
+                    on larger screens.
                   </p>
                 </div>
 
@@ -176,20 +191,27 @@ function DashboardPage({
                     {signedInUser.email}
                   </p>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="status-chip purple">
-                      Preview mode
-                    </span>
-
-                    <span className="status-chip green">
-                      Live data binding
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span className="status-chip green">{signedInUser.role || 'staff'}</span>
+                    <span className={isConnected ? 'status-chip green' : 'status-chip purple'}>
+                      {summary?.recommendedPlanId ? 'Backend connected' : 'Preview mode'}
                     </span>
                   </div>
+
+                  {signedInUser.university ? (
+                    <p className="mt-4 text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
+                      {signedInUser.university.name}
+                    </p>
+                  ) : null}
+
+                  <p className="mt-3 text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
+                    Last sync {lastUpdatedAt}
+                  </p>
                 </div>
               </div>
             </section>
 
-            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
               <div className="panel rounded-[1.75rem] p-5">
                 <div className="flex items-center gap-2 text-[var(--accent-2)]">
                   <BarChart3 className="h-4 w-4" />
@@ -200,7 +222,7 @@ function DashboardPage({
                 </div>
 
                 <p className="mt-3 text-3xl font-semibold text-[var(--text)]">
-                  {liveScanTotal}
+                  {numberFormatter.format(metrics.liveScanTotal)}
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
@@ -218,7 +240,7 @@ function DashboardPage({
                 </div>
 
                 <p className="mt-3 text-3xl font-semibold text-[var(--text)]">
-                  {verifiedEntries}
+                  {numberFormatter.format(metrics.verifiedEntries)}
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
@@ -236,11 +258,29 @@ function DashboardPage({
                 </div>
 
                 <p className="mt-3 text-3xl font-semibold text-[var(--text)]">
-                  {accessZones}
+                  {metrics.accessZones}
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                   Active gates and monitored checkpoints.
+                </p>
+              </div>
+
+              <div className="panel rounded-[1.75rem] p-5">
+                <div className="flex items-center gap-2 text-[var(--accent-2)]">
+                  <Users className="h-4 w-4" />
+
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
+                    Active users
+                  </p>
+                </div>
+
+                <p className="mt-3 text-3xl font-semibold text-[var(--text)]">
+                  {numberFormatter.format(metrics.activeUsers)}
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                  Authenticated users currently connected to the control plane.
                 </p>
               </div>
 
@@ -254,14 +294,38 @@ function DashboardPage({
                 </div>
 
                 <p className="mt-3 text-3xl font-semibold text-[var(--text)]">
-                  0.8s
+                  {metrics.responseTime}
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                  Reader to dashboard response in the mock flow.
+                  Reader to dashboard response in the live flow.
+                </p>
+              </div>
+
+              <div className="panel rounded-[1.75rem] p-5">
+                <div className="flex items-center gap-2 text-[var(--accent)]">
+                  <Fingerprint className="h-4 w-4" />
+
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
+                    Sync state
+                  </p>
+                </div>
+
+                <p className="mt-3 text-3xl font-semibold text-[var(--text)]">
+                  {isConnected ? 'Live' : 'Syncing'}
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                  The backend feed is {isConnected ? 'connected' : 'warming up'}.
                 </p>
               </div>
             </section>
+
+            {errorMessage ? (
+              <section className="rounded-[1.75rem] border border-[rgba(239,68,68,0.28)] bg-[rgba(239,68,68,0.1)] p-5 text-sm leading-7 text-[#fecaca]">
+                {errorMessage}
+              </section>
+            ) : null}
 
             <section className="panel rounded-[2rem] p-5 sm:p-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -277,49 +341,58 @@ function DashboardPage({
 
                 <span className="status-chip green">
                   <span className="h-2 w-2 rounded-full bg-current" />
-                  Live preview
+                  {isConnected ? 'Live feed' : 'Live preview'}
                 </span>
               </div>
 
               <div className="mt-5 space-y-3">
-                {recentScans.map((entry) => (
-                  <div
-                    key={`${entry.id}-${entry.time}-${entry.status}`}
-                    className="flex flex-col gap-3 rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-soft)] p-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <p className="font-semibold text-[var(--text)]">
-                        {entry.name}
-                      </p>
+                {recentScans.length > 0 ? (
+                  recentScans.map((entry) => (
+                    <div
+                      key={`${entry.id}-${entry.time}-${entry.status}`}
+                      className="flex flex-col gap-3 rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-soft)] p-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-semibold text-[var(--text)]">{entry.name}</p>
 
-                      <p className="mt-1 text-sm text-[var(--muted)]">
-                        {entry.id} | {entry.gate}
-                      </p>
+                        <p className="mt-1 text-sm text-[var(--muted)]">
+                          {entry.id} | {entry.gate}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3 sm:justify-end">
+                        <span
+                          className={
+                            entry.status === 'IN'
+                              ? 'status-chip green'
+                              : 'status-chip purple'
+                          }
+                        >
+                          {entry.status}
+                        </span>
+
+                        <p className="text-sm text-[var(--muted)]">{entry.time}</p>
+                      </div>
                     </div>
-
-                    <div className="flex items-center gap-3 sm:justify-end">
-                      <span
-                        className={
-                          entry.status === 'IN'
-                            ? 'status-chip green'
-                            : 'status-chip purple'
-                        }
-                      >
-                        {entry.status}
-                      </span>
-
-                      <p className="text-sm text-[var(--muted)]">
-                        {entry.time}
-                      </p>
-                    </div>
+                  ))
+                ) : isLoading ? (
+                  <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--muted)]">
+                    Waiting for scan activity...
                   </div>
-                ))}
+                ) : (
+                  <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--muted)]">
+                    No scans have been captured yet.
+                  </div>
+                )}
               </div>
             </section>
           </div>
 
           <aside className="space-y-6">
-            <SubscriptionPanel />
+            <SubscriptionPanel
+              recommendedPlanId={summary?.recommendedPlanId}
+              activeUsers={metrics.activeUsers}
+            />
 
             <section className="panel rounded-[2rem] p-5 sm:p-6">
               <div className="flex items-center gap-3">
@@ -331,7 +404,7 @@ function DashboardPage({
                   </p>
 
                   <h2 className="mt-1 text-2xl font-semibold text-[var(--text)]">
-                    Static system snapshot
+                    Live system snapshot
                   </h2>
                 </div>
               </div>
@@ -385,11 +458,20 @@ function DashboardPage({
 
                 <button
                   type="button"
-                  onClick={() => onOpenLogin()}
+                  onClick={onRefresh}
                   className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--accent-2),#7cf7a2)] px-5 py-3.5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5"
                 >
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh feed
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onSimulateScan}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-5 py-3.5 text-sm font-semibold text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+                >
                   <Fingerprint className="h-4 w-4" />
-                  Login page
+                  Simulate scan
                 </button>
               </div>
             </section>

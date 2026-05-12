@@ -13,40 +13,41 @@ import SiteFooter from './components/SiteFooter'
 import SiteHeader from './components/SiteHeader'
 import TeamSection from './components/TeamSection'
 import {
+  clearSession,
+  recordScan,
+  resetDashboard,
+  setDraftEmail,
+  setError,
+  setLoading,
+  setSession,
+  setSessionUser,
+  setSummary,
+  toggleTheme as toggleThemeAction,
+  useAppDispatch,
+  useAppSelector,
+} from '../store/store'
+import {
+  getCurrentUserRequest,
+  getDashboardSummaryRequest,
+  loginRequest,
+  registerRequest,
+  simulateScanRequest,
+} from './services/api'
+import {
   comparisonCards,
   footerLinks,
   flowSteps,
   features,
   hardwareModules,
   heroFlowNodes,
-  initialScans,
   navigation,
   scanRoster,
   teamRoles,
 } from './content/siteContent'
 import './App.css'
 
-type Theme = 'dark' | 'light'
 type AppRoute = '/' | '/login' | '/register' | '/dashboard'
 type ScanStatus = 'IN' | 'OUT'
-
-type SessionUser = {
-  name: string
-  email: string
-}
-
-type StoredAccount = SessionUser & {
-  password: string
-}
-
-const AUTH_ACCOUNT_KEY = 'logic-lab-auth-account'
-const AUTH_SESSION_KEY = 'logic-lab-auth-session'
-const AUTH_DRAFT_EMAIL_KEY = 'logic-lab-auth-draft-email'
-const DEMO_ACCOUNT: StoredAccount = {
-  name: 'Admin User',
-  email: 'admin@logiclab.dev',
-  password: 'LogicLab123!',
-}
 
 type ScanRecord = {
   name: string
@@ -54,6 +55,11 @@ type ScanRecord = {
   status: ScanStatus
   time: string
   gate: string
+}
+
+type AuthResponse = {
+  success: boolean
+  message: string
 }
 
 const numberFormatter = new Intl.NumberFormat('en-US')
@@ -78,108 +84,25 @@ function getInitialRoute(): AppRoute {
   return '/'
 }
 
-function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') {
-    return 'dark'
-  }
-
-  try {
-    const storedTheme = window.localStorage.getItem('logic-lab-theme')
-    return storedTheme === 'light' ? 'light' : 'dark'
-  } catch {
-    return 'dark'
-  }
-}
-
-function readStoredAccount(): StoredAccount | null {
-  if (typeof window === 'undefined') {
-    return null
-  }
-
-  try {
-    const storedAccount = window.localStorage.getItem(AUTH_ACCOUNT_KEY)
-    if (!storedAccount) {
-      return null
-    }
-
-    const parsedAccount = JSON.parse(storedAccount) as Partial<StoredAccount>
-
-    if (
-      typeof parsedAccount.name === 'string' &&
-      typeof parsedAccount.email === 'string' &&
-      typeof parsedAccount.password === 'string'
-    ) {
-      return {
-        name: parsedAccount.name,
-        email: parsedAccount.email,
-        password: parsedAccount.password,
-      }
-    }
-  } catch {
-    // ignored
-  }
-
-  return null
-}
-
-function readStoredSession(): SessionUser | null {
-  if (typeof window === 'undefined') {
-    return null
-  }
-
-  try {
-    const storedSession = window.localStorage.getItem(AUTH_SESSION_KEY)
-    if (!storedSession) {
-      return null
-    }
-
-    const parsedSession = JSON.parse(storedSession) as Partial<SessionUser>
-
-    if (typeof parsedSession.name === 'string' && typeof parsedSession.email === 'string') {
-      return {
-        name: parsedSession.name,
-        email: parsedSession.email,
-      }
-    }
-  } catch {
-    // ignored
-  }
-
-  return null
-}
-
-function readStoredDraftEmail(): string {
-  if (typeof window === 'undefined') {
-    return ''
-  }
-
-  try {
-    const storedEmail = window.localStorage.getItem(AUTH_DRAFT_EMAIL_KEY)
-    return storedEmail ?? ''
-  } catch {
-    return ''
-  }
-}
-
 function App() {
+  const dispatch = useAppDispatch()
+  const theme = useAppSelector((state) => state.ui.theme)
+  const sessionToken = useAppSelector((state) => state.auth.token)
+  const sessionUser = useAppSelector((state) => state.auth.user)
+  const authDraftEmail = useAppSelector((state) => state.auth.draftEmail)
+  const dashboardSummary = useAppSelector((state) => state.dashboard.summary)
+  const dashboardLoading = useAppSelector((state) => state.dashboard.loading)
+  const dashboardError = useAppSelector((state) => state.dashboard.error)
+  const scanCount = useAppSelector((state) => state.demo.scanCount)
+  const scanLog = useAppSelector((state) => state.demo.scanLog)
+
   const [route, setRoute] = useState<AppRoute>(() => getInitialRoute())
-  const [theme, setTheme] = useState<Theme>(() => getInitialTheme())
-  const [sessionUser, setSessionUser] = useState<SessionUser | null>(() => readStoredSession())
-  const [authDraftEmail, setAuthDraftEmail] = useState<string>(() => readStoredDraftEmail())
-  const [scanCount, setScanCount] = useState(0)
-  const [scanLog, setScanLog] = useState<ScanRecord[]>(initialScans)
   const [toast, setToast] = useState<{ title: string; description: string } | null>(null)
 
   useEffect(() => {
     const root = document.documentElement
     root.dataset.theme = theme
     root.style.colorScheme = theme
-
-    try {
-      window.localStorage.setItem('logic-lab-theme', theme)
-    } catch {
-      // ignored
-    }
   }, [theme])
 
   useEffect(() => {
@@ -193,6 +116,48 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!sessionToken) {
+      return
+    }
+
+    let cancelled = false
+
+    const syncSession = async () => {
+      try {
+        const result = await getCurrentUserRequest(sessionToken)
+
+        if (cancelled) {
+          return
+        }
+
+        dispatch(setSessionUser(result.user))
+      } catch {
+        if (cancelled) {
+          return
+        }
+
+        dispatch(clearSession())
+        dispatch(resetDashboard())
+        setToast({
+          title: 'Session expired',
+          description: 'Please sign in again to continue.',
+        })
+
+        if (window.location.pathname === '/dashboard') {
+          window.history.pushState({}, '', '/login')
+          setRoute('/login')
+        }
+      }
+    }
+
+    void syncSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [dispatch, sessionToken])
+
+  useEffect(() => {
     if (!toast) {
       return undefined
     }
@@ -202,7 +167,7 @@ function App() {
   }, [toast])
 
   useEffect(() => {
-    if (route === '/dashboard' && !sessionUser) {
+    if (route === '/dashboard' && !sessionToken) {
       setToast({
         title: 'Sign in required',
         description: 'Please sign in to access the protected dashboard.',
@@ -216,14 +181,58 @@ function App() {
       return
     }
 
-    if ((route === '/login' || route === '/register') && sessionUser) {
+    if ((route === '/login' || route === '/register') && sessionToken && sessionUser) {
       if (window.location.pathname !== '/dashboard') {
         window.history.pushState({}, '', '/dashboard')
       }
 
       setRoute('/dashboard')
     }
-  }, [route, sessionUser])
+  }, [route, sessionToken, sessionUser])
+
+  useEffect(() => {
+    if (route !== '/dashboard' || !sessionToken) {
+      return
+    }
+
+    let cancelled = false
+
+    const loadDashboardSummary = async () => {
+      dispatch(setLoading(true))
+      dispatch(setError(null))
+
+      try {
+        const summary = await getDashboardSummaryRequest(sessionToken)
+
+        if (cancelled) {
+          return
+        }
+
+        dispatch(setSummary(summary))
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+
+        const message = error instanceof Error ? error.message : 'Unable to load the dashboard summary.'
+        dispatch(setError(message))
+        setToast({
+          title: 'Dashboard sync failed',
+          description: message,
+        })
+      } finally {
+        if (!cancelled) {
+          dispatch(setLoading(false))
+        }
+      }
+    }
+
+    void loadDashboardSummary()
+
+    return () => {
+      cancelled = true
+    }
+  }, [dispatch, route, sessionToken])
 
   useEffect(() => {
     const handlePopState = () => {
@@ -263,12 +272,12 @@ function App() {
   }
 
   const openLogin = (prefillEmail = authDraftEmail) => {
-    setAuthDraftEmail(prefillEmail)
+    dispatch(setDraftEmail(prefillEmail))
     navigateTo('/login')
   }
 
   const openRegister = (prefillEmail = authDraftEmail) => {
-    setAuthDraftEmail(prefillEmail)
+    dispatch(setDraftEmail(prefillEmail))
     navigateTo('/register')
   }
 
@@ -276,27 +285,7 @@ function App() {
     navigateTo('/dashboard')
   }
 
-  const saveSession = (user: SessionUser) => {
-    setSessionUser(user)
-
-    try {
-      window.localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(user))
-    } catch {
-      // ignored
-    }
-  }
-
-  const saveDraftEmail = (email: string) => {
-    setAuthDraftEmail(email)
-
-    try {
-      window.localStorage.setItem(AUTH_DRAFT_EMAIL_KEY, email)
-    } catch {
-      // ignored
-    }
-  }
-
-  const simulateScan = () => {
+  const recordLocalScan = () => {
     const nextPerson = scanRoster[scanCount % scanRoster.length]
     const status: ScanStatus = scanCount % 2 === 0 ? 'IN' : 'OUT'
     const time = new Date().toLocaleTimeString([], {
@@ -312,93 +301,135 @@ function App() {
       gate: status === 'IN' ? 'North Gate' : 'South Exit',
     }
 
-    setScanLog((previous) => [record, ...previous].slice(0, 5))
-    setScanCount((previous) => previous + 1)
+    dispatch(recordScan(record))
     setToast({
       title: `${record.name} checked ${record.status === 'IN' ? 'in' : 'out'}`,
       description: `${record.id} logged at ${record.time} through ${record.gate}.`,
     })
   }
 
-  const handleMockLogin = () => {
-    setToast({
-      title: 'Mock admin login',
-      description: 'This is a mocked dashboard sign-in for the product demo.',
-    })
-  }
-
-  const handleLogin = ({ email, password }: { email: string; password: string }) => {
-    const normalizedEmail = email.trim().toLowerCase()
-    const storedAccount = readStoredAccount()
-
-    const storedAccountMatches =
-      storedAccount !== null &&
-      storedAccount.email.toLowerCase() === normalizedEmail &&
-      storedAccount.password === password
-
-    const demoAccountMatches =
-      DEMO_ACCOUNT.email.toLowerCase() === normalizedEmail && DEMO_ACCOUNT.password === password
-
-    if (!storedAccountMatches && !demoAccountMatches) {
-      return {
-        success: false,
-        message: 'Use the demo credentials or the account you created on the register page.',
-      }
+  const refreshDashboard = async () => {
+    if (!sessionToken || route !== '/dashboard') {
+      return
     }
 
-    const signedInUser = storedAccountMatches && storedAccount
-      ? { name: storedAccount.name, email: storedAccount.email }
-      : { name: DEMO_ACCOUNT.name, email: DEMO_ACCOUNT.email }
-
-    saveSession(signedInUser)
-    saveDraftEmail(signedInUser.email)
-
-    setToast({
-      title: 'Signed in successfully',
-      description: `${signedInUser.name} is now connected to the dashboard.`,
-    })
-
-    return {
-      success: true,
-      message: 'Signed in successfully.',
-    }
-  }
-
-  const handleRegister = ({ name, email, password }: { name: string; email: string; password: string }) => {
-    const newAccount: StoredAccount = {
-      name,
-      email,
-      password,
-    }
+    dispatch(setLoading(true))
+    dispatch(setError(null))
 
     try {
-      window.localStorage.setItem(AUTH_ACCOUNT_KEY, JSON.stringify(newAccount))
-    } catch {
-      // ignored
+      const summary = await getDashboardSummaryRequest(sessionToken)
+      dispatch(setSummary(summary))
+      setToast({
+        title: 'Dashboard refreshed',
+        description: 'Live data synced from the API.',
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to refresh the dashboard.'
+      dispatch(setError(message))
+      setToast({
+        title: 'Refresh failed',
+        description: message,
+      })
+    } finally {
+      dispatch(setLoading(false))
+    }
+  }
+
+  const simulateScan = async () => {
+    if (route === '/dashboard' && sessionToken) {
+      dispatch(setLoading(true))
+      dispatch(setError(null))
+
+      try {
+        const summary = await simulateScanRequest(sessionToken)
+        dispatch(setSummary(summary))
+
+        const latestRecord = summary.currentScan
+
+        if (latestRecord) {
+          setToast({
+            title: `${latestRecord.name} checked ${latestRecord.status === 'IN' ? 'in' : 'out'}`,
+            description: `${latestRecord.id} logged at ${latestRecord.time} through ${latestRecord.gate}.`,
+          })
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to record the simulated scan.'
+        dispatch(setError(message))
+        setToast({
+          title: 'Scan failed',
+          description: message,
+        })
+      } finally {
+        dispatch(setLoading(false))
+      }
+
+      return
     }
 
-    saveDraftEmail(newAccount.email)
+    recordLocalScan()
+  }
 
+  const handleMockLogin = () => {
+    openLogin('admin@logiclab.dev')
     setToast({
-      title: 'Account created',
-      description: `${newAccount.name} is ready. Continue to the login page to sign in.`,
+      title: 'Demo login ready',
+      description: 'The login page is prefilled with the seeded backend account.',
     })
+  }
 
-    return {
-      success: true,
-      message: 'Account created.',
+  const handleLogin = async ({ email, password }: { email: string; password: string }): Promise<AuthResponse> => {
+    try {
+      const response = await loginRequest({ email, password })
+
+      dispatch(setSession({ token: response.token, user: response.user }))
+      dispatch(setDraftEmail(response.user.email))
+      dispatch(resetDashboard())
+
+      setToast({
+        title: 'Signed in successfully',
+        description: `${response.user.name} is now connected to the dashboard.`,
+      })
+
+      return {
+        success: true,
+        message: response.message,
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to sign in right now.'
+      return {
+        success: false,
+        message,
+      }
+    }
+  }
+
+  const handleRegister = async ({ name, email, password }: { name: string; email: string; password: string }): Promise<AuthResponse> => {
+    try {
+      const response = await registerRequest({ name, email, password })
+
+      dispatch(setDraftEmail(response.user.email))
+
+      setToast({
+        title: 'Account created',
+        description: `${response.user.name} is ready. Continue to the login page to sign in.`,
+      })
+
+      return {
+        success: true,
+        message: response.message,
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to create the account right now.'
+      return {
+        success: false,
+        message,
+      }
     }
   }
 
   const handleSignOut = () => {
-    setSessionUser(null)
-
-    try {
-      window.localStorage.removeItem(AUTH_SESSION_KEY)
-    } catch {
-      // ignored
-    }
-
+    dispatch(clearSession())
+    dispatch(resetDashboard())
     navigateTo('/')
 
     setToast({
@@ -408,7 +439,7 @@ function App() {
   }
 
   const toggleTheme = () => {
-    setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
+    dispatch(toggleThemeAction())
   }
 
   if (route !== '/') {
@@ -418,15 +449,17 @@ function App() {
           theme={theme}
           onToggleTheme={toggleTheme}
           onNavigateHome={() => navigateTo('/')}
-          onOpenLogin={openLogin}
-          onOpenRegister={openRegister}
           onSignOut={handleSignOut}
+          onRefresh={() => {
+            void refreshDashboard()
+          }}
+          onSimulateScan={() => {
+            void simulateScan()
+          }}
           sessionUser={sessionUser}
-          liveScanTotal={liveScanTotal}
-          verifiedEntries={verifiedEntries}
-          accessZones={accessZones}
-          currentScan={currentScan}
-          scanLog={scanLog}
+          summary={dashboardSummary}
+          isLoading={dashboardLoading}
+          errorMessage={dashboardError}
         />
       )
     }
@@ -476,7 +509,9 @@ function App() {
           scanLog={scanLog}
           liveScanTotal={liveScanTotal}
           verifiedEntries={verifiedEntries}
-          onSimulateScan={simulateScan}
+          onSimulateScan={() => {
+            void simulateScan()
+          }}
           onMockLogin={handleMockLogin}
         />
         <HardwareIntegrationSection hardwareModules={hardwareModules} />

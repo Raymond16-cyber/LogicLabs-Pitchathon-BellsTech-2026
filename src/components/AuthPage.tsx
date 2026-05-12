@@ -28,8 +28,8 @@ type AuthPageProps = {
   onOpenLogin: (prefillEmail?: string) => void
   onOpenRegister: (prefillEmail?: string) => void
   defaultEmail?: string
-  onLogin: (payload: { email: string; password: string }) => AuthResponse
-  onRegister: (payload: { name: string; email: string; password: string }) => AuthResponse
+  onLogin: (payload: { email: string; password: string }) => Promise<AuthResponse> | AuthResponse
+  onRegister: (payload: { name: string; email: string; password: string }) => Promise<AuthResponse> | AuthResponse
 }
 
 type PasswordFieldProps = {
@@ -40,6 +40,7 @@ type PasswordFieldProps = {
   autoComplete: 'current-password' | 'new-password'
   visible: boolean
   onToggleVisibility: () => void
+  disabled?: boolean
 }
 
 function PasswordField({
@@ -50,6 +51,7 @@ function PasswordField({
   autoComplete,
   visible,
   onToggleVisibility,
+  disabled,
 }: PasswordFieldProps) {
   const VisibilityIcon = visible ? EyeOff : Eye
 
@@ -63,11 +65,13 @@ function PasswordField({
         placeholder={placeholder}
         aria-label={ariaLabel}
         autoComplete={autoComplete}
+        disabled={disabled}
       />
       <button
         type="button"
         onClick={onToggleVisibility}
-        className="absolute inset-y-0 right-0 flex h-full items-center justify-center px-4 text-[var(--muted)] transition hover:text-[var(--text)]"
+        disabled={disabled}
+        className="absolute inset-y-0 right-0 flex h-full items-center justify-center px-4 text-[var(--muted)] transition hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-60"
         aria-label={visible ? 'Hide password' : 'Show password'}
       >
         <VisibilityIcon className="h-4 w-4" />
@@ -96,6 +100,7 @@ function AuthPage({
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     setEmail(defaultEmail ?? '')
@@ -105,9 +110,14 @@ function AuthPage({
     setShowPassword(false)
     setShowConfirmPassword(false)
     setErrorMessage(null)
+    setIsSubmitting(false)
   }, [defaultEmail, mode])
 
   const switchMode = () => {
+    if (isSubmitting) {
+      return
+    }
+
     const trimmedEmail = email.trim()
 
     if (isLogin) {
@@ -118,61 +128,73 @@ function AuthPage({
     onOpenLogin(trimmedEmail || defaultEmail)
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setErrorMessage(null)
+    setIsSubmitting(true)
 
-    const trimmedEmail = email.trim()
+    try {
+      const trimmedEmail = email.trim()
 
-    if (isLogin) {
-      if (!trimmedEmail || !password) {
-        setErrorMessage('Enter both your email and password to continue.')
+      if (isLogin) {
+        if (!trimmedEmail || !password) {
+          setErrorMessage('Enter both your email and password to continue.')
+          return
+        }
+
+        const result = await onLogin({ email: trimmedEmail, password })
+
+        if (!result.success) {
+          setErrorMessage(result.message)
+          return
+        }
+
+        onNavigateDashboard()
         return
       }
 
-      const result = onLogin({ email: trimmedEmail, password })
+      const trimmedName = name.trim()
+
+      if (!trimmedName || !trimmedEmail || !password) {
+        setErrorMessage('Fill in your name, email, and password to create the account.')
+        return
+      }
+
+      if (password !== confirmPassword) {
+        setErrorMessage('Passwords do not match.')
+        return
+      }
+
+      const result = await onRegister({ name: trimmedName, email: trimmedEmail, password })
 
       if (!result.success) {
         setErrorMessage(result.message)
         return
       }
 
-      onNavigateDashboard()
-      return
+      onOpenLogin(trimmedEmail)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to reach the authentication service.'
+      setErrorMessage(message)
+    } finally {
+      setIsSubmitting(false)
     }
-
-    const trimmedName = name.trim()
-
-    if (!trimmedName || !trimmedEmail || !password) {
-      setErrorMessage('Fill in your name, email, and password to create the account.')
-      return
-    }
-
-    if (password !== confirmPassword) {
-      setErrorMessage('Passwords do not match.')
-      return
-    }
-
-    const result = onRegister({ name: trimmedName, email: trimmedEmail, password })
-
-    if (!result.success) {
-      setErrorMessage(result.message)
-      return
-    }
-
-    onOpenLogin(trimmedEmail)
   }
 
   const pageTitle = isLogin ? 'Sign in to The Logic Lab' : 'Create your organization access account'
   const pageCopy = isLogin
-    ? 'Use the demo account or the account you created from the register page. The flow stays inside the app, so you can jump back to the dashboard when sign-in succeeds.'
-    : 'Set up a local demo account and move straight into the login screen. This keeps the auth flow wired to the app without needing a backend.'
+    ? 'Use the seeded demo account or the account you created from the register page. A successful sign in now loads the live dashboard snapshot from the backend.'
+    : 'Create an account against the API and move straight into the login screen. The session is now token-backed instead of browser-only.'
 
   return (
     <div className="app-shell min-h-screen overflow-hidden">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <button type="button" onClick={onNavigateHome} className="flex w-full items-center gap-3 text-left sm:w-auto">
+          <button
+            type="button"
+            onClick={onNavigateHome}
+            className="flex w-full items-center gap-3 text-left sm:w-auto"
+          >
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--accent),var(--accent-2))] text-slate-950 shadow-[0_16px_40px_rgba(34,197,94,0.22)]">
               <Fingerprint className="h-5 w-5" />
             </div>
@@ -210,11 +232,11 @@ function AuthPage({
                 <div className="flex items-center gap-2 text-[var(--accent-2)]">
                   <ShieldCheck className="h-4 w-4" />
                   <span className="text-xs font-semibold uppercase tracking-[0.26em] text-[var(--muted)]">
-                    Demo storage
+                    Backend auth
                   </span>
                 </div>
                 <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                  Accounts are stored locally in the browser for this preview.
+                  Accounts are validated by the API and signed with a JWT session.
                 </p>
               </div>
 
@@ -222,11 +244,11 @@ function AuthPage({
                 <div className="flex items-center gap-2 text-[var(--accent)]">
                   <Sparkles className="h-4 w-4" />
                   <span className="text-xs font-semibold uppercase tracking-[0.26em] text-[var(--muted)]">
-                    App wired
+                    Token session
                   </span>
                 </div>
                 <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                  Login and register move through the same app shell as the landing page.
+                  Login and register now hand off to the protected dashboard state.
                 </p>
               </div>
             </div>
@@ -241,7 +263,7 @@ function AuthPage({
                     Demo credentials
                   </p>
                   <p className="mt-1 text-sm leading-7 text-[var(--muted)]">
-                    Login with admin@logiclab.dev and LogicLab123! if you want a ready-made preview.
+                    Login with admin@logiclab.dev and LogicLab123! for the seeded backend account.
                   </p>
                 </div>
               </div>
@@ -280,6 +302,7 @@ function AuthPage({
                   placeholder="Your full name"
                   aria-label="Full name"
                   autoComplete="name"
+                  disabled={isSubmitting}
                 />
               ) : null}
 
@@ -291,6 +314,7 @@ function AuthPage({
                 placeholder="admin@logiclab.dev"
                 aria-label="Email address"
                 autoComplete="email"
+                disabled={isSubmitting}
               />
 
               <PasswordField
@@ -301,6 +325,7 @@ function AuthPage({
                 autoComplete={isLogin ? 'current-password' : 'new-password'}
                 visible={showPassword}
                 onToggleVisibility={() => setShowPassword((current) => !current)}
+                disabled={isSubmitting}
               />
 
               {!isLogin ? (
@@ -312,14 +337,16 @@ function AuthPage({
                   autoComplete="new-password"
                   visible={showConfirmPassword}
                   onToggleVisibility={() => setShowConfirmPassword((current) => !current)}
+                  disabled={isSubmitting}
                 />
               ) : null}
 
               <button
                 type="submit"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--accent-2),#7cf7a2)] px-5 py-3.5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5"
+                disabled={isSubmitting}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--accent-2),#7cf7a2)] px-5 py-3.5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {isLogin ? 'Enter dashboard' : 'Create account'}
+                {isSubmitting ? 'Working...' : isLogin ? 'Enter dashboard' : 'Create account'}
                 <UserRound className="h-4 w-4" />
               </button>
             </form>
@@ -328,7 +355,8 @@ function AuthPage({
               <button
                 type="button"
                 onClick={switchMode}
-                className="text-left font-semibold text-[var(--accent-2)] transition hover:opacity-80 sm:text-center"
+                disabled={isSubmitting}
+                className="text-left font-semibold text-[var(--accent-2)] transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60 sm:text-center"
               >
                 {isLogin ? 'Need an account? Register here.' : 'Already have an account? Log in here.'}
               </button>
@@ -336,7 +364,8 @@ function AuthPage({
               <button
                 type="button"
                 onClick={onNavigateHome}
-                className="text-left text-[var(--muted)] transition hover:text-[var(--text)] sm:text-right"
+                disabled={isSubmitting}
+                className="text-left text-[var(--muted)] transition hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-60 sm:text-right"
               >
                 Back to home
               </button>

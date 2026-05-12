@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { BadgeCheck, BarChart3, Check, ShieldCheck } from 'lucide-react'
 
@@ -46,11 +46,28 @@ const subscriptionPlans: SubscriptionPlan[] = [
   },
 ]
 
-function SubscriptionPanel() {
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanId>('pro')
+type SubscriptionPanelProps = {
+  recommendedPlanId?: SubscriptionPlanId
+  activeUsers?: number
+}
+
+function SubscriptionPanel({ recommendedPlanId, activeUsers }: SubscriptionPanelProps) {
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanId>(recommendedPlanId ?? 'pro')
+
+  useEffect(() => {
+    if (recommendedPlanId) {
+      setSelectedPlan(recommendedPlanId)
+    }
+  }, [recommendedPlanId])
 
   const activePlan =
     subscriptionPlans.find((plan) => plan.id === selectedPlan) ?? subscriptionPlans[1]
+
+  const recommendedPlan =
+    subscriptionPlans.find((plan) => plan.id === (recommendedPlanId ?? selectedPlan)) ??
+    subscriptionPlans[1]
+
+  const signalLabel = activeUsers !== undefined ? 'Live recommendation' : 'Preview only'
 
   return (
     <section className="panel rounded-[2rem] p-5 sm:p-6">
@@ -61,12 +78,26 @@ function SubscriptionPanel() {
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-[var(--text)]">Choose a plan</h2>
         </div>
-        <span className="status-chip purple">Preview only</span>
+        <span className={activeUsers !== undefined ? 'status-chip green' : 'status-chip purple'}>
+          {signalLabel}
+        </span>
       </div>
 
       <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
         Pick Starter, Pro, or Enterprise to match the rollout size.
       </p>
+
+      {activeUsers !== undefined ? (
+        <div className="mt-4 rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--muted)]">
+            Recommendation
+          </p>
+          <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+            Based on {activeUsers} active users,{' '}
+            <span className="font-semibold text-[var(--text)]">{recommendedPlan.name}</span> is the best fit right now.
+          </p>
+        </div>
+      ) : null}
 
       <div className="mt-5 space-y-3">
         {subscriptionPlans.map((plan, index) => {
@@ -149,7 +180,7 @@ function SubscriptionPanel() {
           </div>
         </div>
         <p className="mt-4 text-xs leading-6 text-[var(--muted)]">
-          This selection is part of the static dashboard preview, so it updates locally only.
+          The panel stays interactive, and the recommended plan can follow the live dashboard load.
         </p>
       </div>
     </section>

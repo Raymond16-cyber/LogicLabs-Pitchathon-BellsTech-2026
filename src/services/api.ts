@@ -45,9 +45,20 @@ export type DashboardCounters = {
   responseTime: string;
 };
 
+export type DashboardInsights = {
+  checkIns: number;
+  checkOuts: number;
+  busiestGate: string;
+  busiestGateCount: number;
+  flowBias: "Inbound" | "Outbound" | "Balanced";
+  healthLabel: "Idle" | "Stable" | "Monitor" | "Review";
+  healthNote: string;
+};
+
 export type DashboardSnapshot = {
   user: AuthSessionUser | null;
   counters: DashboardCounters;
+  insights: DashboardInsights;
   operationsPanels: DashboardPanel[];
   recentScans: DashboardScanRecord[];
   currentScan: DashboardScanRecord | null;

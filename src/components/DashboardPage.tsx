@@ -3,16 +3,21 @@ import {
   BadgeCheck,
   BarChart3,
   BellRing,
+  Activity,
   Clock3,
   Fingerprint,
   LayoutDashboard,
   MoonStar,
+  Search,
   RefreshCw,
+  SlidersHorizontal,
+  MapPin,
   ShieldCheck,
   SunMedium,
   Users,
 } from 'lucide-react'
 import SubscriptionPanel from './SubscriptionPanel'
+import { useState } from 'react'
 import type { AuthSessionUser, DashboardPanel, DashboardSnapshot } from '../services/api'
 
 type Theme = 'dark' | 'light'
@@ -82,6 +87,20 @@ function DashboardPage({
     responseTime: '0.0s',
   }
 
+  const insights = summary?.insights ?? {
+    checkIns: 0,
+    checkOuts: 0,
+    busiestGate: 'North Gate',
+    busiestGateCount: 0,
+    flowBias: 'Balanced' as const,
+    healthLabel: 'Idle' as const,
+    healthNote: 'Waiting for the first reader event.',
+  }
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'IN' | 'OUT'>('all')
+  const [gateFilter, setGateFilter] = useState('all')
+
   const recentScans = summary?.recentScans ?? []
   const operationsPanels = summary?.operationsPanels ?? fallbackPanels
   const isConnected = summary?.connectionState === 'connected'
@@ -93,6 +112,26 @@ function DashboardPage({
     : 'waiting for sync'
   const ThemeIcon = theme === 'dark' ? SunMedium : MoonStar
   const numberFormatter = new Intl.NumberFormat('en-US')
+    const gateOptions = Array.from(new Set(recentScans.map((entry) => entry.gate)))
+    const normalizedQuery = searchQuery.trim().toLowerCase()
+
+    const filteredScans = recentScans.filter((entry) => {
+      const queryMatch =
+        normalizedQuery.length === 0 ||
+        `${entry.name} ${entry.id} ${entry.gate} ${entry.status}`.toLowerCase().includes(normalizedQuery)
+      const statusMatch = statusFilter === 'all' || entry.status === statusFilter
+      const gateMatch = gateFilter === 'all' || entry.gate === gateFilter
+
+      return queryMatch && statusMatch && gateMatch
+    })
+
+    const hasActiveFilters = normalizedQuery.length > 0 || statusFilter !== 'all' || gateFilter !== 'all'
+
+    const resetFilters = () => {
+      setSearchQuery('')
+      setStatusFilter('all')
+      setGateFilter('all')
+    }
 
   return (
     <div className="app-shell min-h-screen overflow-hidden">
@@ -321,11 +360,157 @@ function DashboardPage({
               </div>
             </section>
 
+            <section className="panel rounded-[2rem] p-5 sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--muted)]">
+                    Operational insights
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-semibold text-[var(--text)]">
+                    Traffic balance and gate pressure
+                  </h2>
+                </div>
+
+                <span className="status-chip green">
+                  <Activity className="h-3.5 w-3.5" />
+                  Live snapshot
+                </span>
+              </div>
+
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
+                    Check-ins
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{insights.checkIns}</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                    Recent inbound confirmations.
+                  </p>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
+                    Check-outs
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{insights.checkOuts}</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                    Recent outbound confirmations.
+                  </p>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
+                    Busiest gate
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">
+                    {insights.busiestGate}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                    {insights.busiestGateCount} recent scan{insights.busiestGateCount === 1 ? '' : 's'}.
+                  </p>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
+                    Health
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">
+                    {insights.healthLabel}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                    {insights.healthNote}
+                  </p>
+                </div>
+              </div>
+            </section>
+
             {errorMessage ? (
               <section className="rounded-[1.75rem] border border-[rgba(239,68,68,0.28)] bg-[rgba(239,68,68,0.1)] p-5 text-sm leading-7 text-[#fecaca]">
                 {errorMessage}
               </section>
             ) : null}
+
+            <section className="panel rounded-[2rem] p-5 sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--muted)]">
+                    Feed controls
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-semibold text-[var(--text)]">
+                    Search and filter scans
+                  </h2>
+                </div>
+
+                <span className={hasActiveFilters ? 'status-chip purple' : 'status-chip green'}>
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  {filteredScans.length} shown / {recentScans.length} total
+                </span>
+              </div>
+
+              <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+                <label className="relative block">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
+                  <input
+                    className="field-shell pl-11"
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search by name, ID, gate, or status"
+                    aria-label="Search activity log"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-5 py-3.5 text-sm font-semibold text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+                >
+                  <span className="h-2 w-2 rounded-full bg-current opacity-70" />
+                  Reset filters
+                </button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {(['all', 'IN', 'OUT'] as const).map((filterValue) => (
+                  <button
+                    key={filterValue}
+                    type="button"
+                    onClick={() => setStatusFilter(filterValue)}
+                    className={
+                      statusFilter === filterValue
+                        ? 'status-chip green'
+                        : 'status-chip purple'
+                    }
+                  >
+                    {filterValue === 'all' ? 'All statuses' : filterValue}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setGateFilter('all')}
+                  className={gateFilter === 'all' ? 'status-chip green' : 'status-chip purple'}
+                >
+                  All gates
+                </button>
+
+                {gateOptions.map((gateName) => (
+                  <button
+                    key={gateName}
+                    type="button"
+                    onClick={() => setGateFilter(gateName)}
+                    className={gateFilter === gateName ? 'status-chip green' : 'status-chip purple'}
+                  >
+                    <MapPin className="h-3.5 w-3.5" />
+                    {gateName}
+                  </button>
+                ))}
+              </div>
+            </section>
 
             <section className="panel rounded-[2rem] p-5 sm:p-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -346,8 +531,8 @@ function DashboardPage({
               </div>
 
               <div className="mt-5 space-y-3">
-                {recentScans.length > 0 ? (
-                  recentScans.map((entry) => (
+                {filteredScans.length > 0 ? (
+                  filteredScans.map((entry) => (
                     <div
                       key={`${entry.id}-${entry.time}-${entry.status}`}
                       className="flex flex-col gap-3 rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-soft)] p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -381,7 +566,9 @@ function DashboardPage({
                   </div>
                 ) : (
                   <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--muted)]">
-                    No scans have been captured yet.
+                    {recentScans.length === 0
+                      ? 'No scans have been captured yet.'
+                      : 'No scans match the current filters.'}
                   </div>
                 )}
               </div>

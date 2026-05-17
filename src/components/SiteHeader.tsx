@@ -8,31 +8,46 @@ type SessionUser = {
 }
 
 type SiteHeaderProps = {
+  currentRoute: '/' | '/login' | '/register' | '/dashboard' | '/Demo-Attendance'
   theme: Theme
   onToggleTheme: () => void
   navigation: Array<{
     label: string
     href: string
   }>
+  onNavigateHome: () => void
   onOpenLogin: (prefillEmail?: string) => void
   onOpenRegister: (prefillEmail?: string) => void
+  onOpenDemoAttendance: () => void
   sessionUser: SessionUser | null
   onSignOut: () => void
 }
 
 function SiteHeader({
+  currentRoute,
   theme,
   onToggleTheme,
   navigation,
+  onNavigateHome,
   onOpenLogin,
   onOpenRegister,
+  onOpenDemoAttendance,
   sessionUser,
   onSignOut,
 }: SiteHeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[rgba(6,16,31,0.72)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-8">
-        <a href="#hero" className="flex items-center gap-3">
+        <a
+          href={currentRoute === '/' ? '#hero' : '/'}
+          onClick={(event) => {
+            if (currentRoute !== '/') {
+              event.preventDefault()
+              onNavigateHome()
+            }
+          }}
+          className="flex items-center gap-3"
+        >
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--accent),var(--accent-2))] text-slate-950 shadow-[0_16px_40px_rgba(34,197,94,0.22)]">
             <Fingerprint className="h-5 w-5" />
           </div>
@@ -46,7 +61,19 @@ function SiteHeader({
 
         <nav className="hidden items-center gap-6 text-sm text-[var(--muted)] lg:flex">
           {navigation.map((item) => (
-            <a key={item.label} href={item.href} className="transition hover:text-[var(--text)]">
+            <a
+              key={item.label}
+              href={item.href}
+              onClick={
+                item.label === 'Demo Attendance'
+                  ? (event) => {
+                      event.preventDefault()
+                      onOpenDemoAttendance()
+                    }
+                  : undefined
+              }
+              className="transition hover:text-[var(--text)]"
+            >
               {item.label}
             </a>
           ))}

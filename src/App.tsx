@@ -4,6 +4,7 @@ import { BellRing } from 'lucide-react'
 import AuthPage from './components/AuthPage'
 import AboutSystemSection from './components/AboutSystemSection'
 import DashboardPage from './components/DashboardPage'
+import DemoAttendancePage from './components/DemoAttendancePage'
 import DemoSection from './components/DemoSection'
 import FeaturesSection from './components/FeaturesSection'
 import HardwareIntegrationSection from './components/HardwareIntegrationSection'
@@ -46,7 +47,10 @@ import {
 } from './content/siteContent'
 import './App.css'
 
-type AppRoute = '/' | '/login' | '/register' | '/dashboard'
+const DEMO_ATTENDANCE_ROUTE = '/Demo-Attendance' as const
+const DEMO_ATTENDANCE_ROUTE_ALIAS = '/demo-attendance' as const
+
+type AppRoute = '/' | '/login' | '/register' | '/dashboard' | typeof DEMO_ATTENDANCE_ROUTE
 type ScanStatus = 'IN' | 'OUT'
 
 type ScanRecord = {
@@ -79,6 +83,13 @@ function getInitialRoute(): AppRoute {
 
   if (window.location.pathname === '/dashboard') {
     return '/dashboard'
+  }
+
+  if (
+    window.location.pathname === DEMO_ATTENDANCE_ROUTE ||
+    window.location.pathname === DEMO_ATTENDANCE_ROUTE_ALIAS
+  ) {
+    return DEMO_ATTENDANCE_ROUTE
   }
 
   return '/'
@@ -285,6 +296,10 @@ function App() {
     navigateTo('/dashboard')
   }
 
+  const openDemoAttendance = () => {
+    navigateTo(DEMO_ATTENDANCE_ROUTE)
+  }
+
   const recordLocalScan = () => {
     const nextPerson = scanRoster[scanCount % scanRoster.length]
     const status: ScanStatus = scanCount % 2 === 0 ? 'IN' : 'OUT'
@@ -442,28 +457,28 @@ function App() {
     dispatch(toggleThemeAction())
   }
 
-  if (route !== '/') {
-    if (route === '/dashboard') {
-      return (
-        <DashboardPage
-          theme={theme}
-          onToggleTheme={toggleTheme}
-          onNavigateHome={() => navigateTo('/')}
-          onSignOut={handleSignOut}
-          onRefresh={() => {
-            void refreshDashboard()
-          }}
-          onSimulateScan={() => {
-            void simulateScan()
-          }}
-          sessionUser={sessionUser}
-          summary={dashboardSummary}
-          isLoading={dashboardLoading}
-          errorMessage={dashboardError}
-        />
-      )
-    }
+  if (route === '/dashboard') {
+    return (
+      <DashboardPage
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onNavigateHome={() => navigateTo('/')}
+        onSignOut={handleSignOut}
+        onRefresh={() => {
+          void refreshDashboard()
+        }}
+        onSimulateScan={() => {
+          void simulateScan()
+        }}
+        sessionUser={sessionUser}
+        summary={dashboardSummary}
+        isLoading={dashboardLoading}
+        errorMessage={dashboardError}
+      />
+    )
+  }
 
+  if (route === '/login' || route === '/register') {
     return (
       <AuthPage
         mode={route === '/login' ? 'login' : 'register'}
@@ -480,55 +495,75 @@ function App() {
     )
   }
 
+  const isDemoAttendanceRoute = route === DEMO_ATTENDANCE_ROUTE
+
   return (
     <div className="app-shell min-h-screen overflow-hidden">
       <SiteHeader
+        currentRoute={route}
         theme={theme}
         onToggleTheme={toggleTheme}
         navigation={navigation}
+        onNavigateHome={() => navigateTo('/')}
         onOpenLogin={openLogin}
         onOpenRegister={openRegister}
+        onOpenDemoAttendance={openDemoAttendance}
         sessionUser={sessionUser}
         onSignOut={handleSignOut}
       />
 
       <main>
-        <HeroSection
-          liveScanTotal={liveScanTotal}
-          verifiedEntries={verifiedEntries}
-          accessZones={accessZones}
-          heroFlowNodes={heroFlowNodes}
-          onOpenLogin={openLogin}
-          onOpenRegister={openRegister}
-        />
-        <AboutSystemSection comparisonCards={comparisonCards} />
-        <HowItWorksSection flowSteps={flowSteps} />
-        <FeaturesSection features={features} />
-        <DemoSection
-          currentScan={currentScan}
-          scanLog={scanLog}
-          liveScanTotal={liveScanTotal}
-          verifiedEntries={verifiedEntries}
-          onSimulateScan={() => {
-            void simulateScan()
-          }}
-          onMockLogin={handleMockLogin}
-        />
-        <HardwareIntegrationSection hardwareModules={hardwareModules} />
-        <TeamSection teamRoles={teamRoles} />
+        {isDemoAttendanceRoute ? (
+          <DemoAttendancePage
+            currentScan={currentScan}
+            scanLog={scanLog}
+            liveScanTotal={liveScanTotal}
+            verifiedEntries={verifiedEntries}
+            onSimulateScan={() => {
+              void simulateScan()
+            }}
+            onMockLogin={handleMockLogin}
+          />
+        ) : (
+          <>
+            <HeroSection
+              liveScanTotal={liveScanTotal}
+              verifiedEntries={verifiedEntries}
+              accessZones={accessZones}
+              heroFlowNodes={heroFlowNodes}
+              onOpenLogin={openLogin}
+              onOpenRegister={openRegister}
+            />
+            <AboutSystemSection comparisonCards={comparisonCards} />
+            <HowItWorksSection flowSteps={flowSteps} />
+            <FeaturesSection features={features} />
+            <DemoSection
+              currentScan={currentScan}
+              scanLog={scanLog}
+              liveScanTotal={liveScanTotal}
+              verifiedEntries={verifiedEntries}
+              onSimulateScan={() => {
+                void simulateScan()
+              }}
+              onMockLogin={handleMockLogin}
+            />
+            <HardwareIntegrationSection hardwareModules={hardwareModules} />
+            <TeamSection teamRoles={teamRoles} />
+          </>
+        )}
       </main>
 
       <SiteFooter footerLinks={footerLinks} />
 
       {toast ? (
-        <div className="toast-pop fixed bottom-5 right-5 z-50 w-[min(92vw,24rem)] rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-strong)] p-4 shadow-[var(--shadow)] backdrop-blur-xl">
+        <div className="toast-pop fixed bottom-5 right-5 z-50 w-[min(92vw,24rem)] rounded-3xl border border-(--border) bg-(--surface-strong) p-4 shadow-(--shadow) backdrop-blur-xl">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[rgba(34,197,94,0.14)] text-[var(--accent-2)]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[rgba(34,197,94,0.14)] text-(--accent-2)">
               <BellRing className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-[var(--text)]">{toast.title}</p>
-              <p className="text-sm leading-6 text-[var(--muted)]">{toast.description}</p>
+              <p className="text-sm font-semibold text-(--text)">{toast.title}</p>
+              <p className="text-sm leading-6 text-(--muted)">{toast.description}</p>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
-import { Fingerprint, MoonStar, SunMedium } from 'lucide-react'
+import { useState } from 'react'
+import { Fingerprint, Menu, MoonStar, SunMedium, X } from 'lucide-react'
 
 type Theme = 'dark' | 'light'
 
@@ -35,12 +36,20 @@ function SiteHeader({
   sessionUser,
   onSignOut,
 }: SiteHeaderProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false)
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[rgba(6,16,31,0.72)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-8">
         <a
           href={currentRoute === '/' ? '#hero' : '/'}
           onClick={(event) => {
+            closeMobileMenu()
+
             if (currentRoute !== '/') {
               event.preventDefault()
               onNavigateHome()
@@ -107,22 +116,118 @@ function SiteHeader({
           {sessionUser ? (
             <button
               type="button"
-              onClick={onSignOut}
-              className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2 text-sm font-semibold text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+              onClick={() => {
+                closeMobileMenu()
+                onSignOut()
+              }}
+              className="hidden rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2 text-sm font-semibold text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)] lg:inline-flex"
             >
               Sign out
             </button>
           ) : null}
           <button
             type="button"
-            onClick={onToggleTheme}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+            onClick={() => {
+              closeMobileMenu()
+              onToggleTheme()
+            }}
+            className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)] lg:inline-flex"
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark' ? <SunMedium className="h-5 w-5" /> : <MoonStar className="h-5 w-5" />}
           </button>
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen((open) => !open)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)] lg:hidden"
+            aria-label={isMobileMenuOpen ? 'Close site menu' : 'Open site menu'}
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="site-mobile-menu"
+          >
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
       </div>
+
+      {isMobileMenuOpen ? (
+        <div className="mx-auto max-w-7xl px-6 pb-4 lg:hidden lg:px-8">
+          <div id="site-mobile-menu" className="panel grid gap-4 rounded-3xl p-4">
+            <div className="grid gap-2">
+              {navigation.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  onClick={
+                    item.label === 'Demo Attendance'
+                      ? (event) => {
+                          event.preventDefault()
+                          closeMobileMenu()
+                          onOpenDemoAttendance()
+                        }
+                      : () => {
+                          closeMobileMenu()
+                        }
+                  }
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm font-semibold text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+                >
+                  {item.label}
+                </a>
+              ))}
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  closeMobileMenu()
+                  onToggleTheme()
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm font-semibold text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {theme === 'dark' ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
+                Toggle theme
+              </button>
+
+              {sessionUser ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMobileMenu()
+                    onSignOut()
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm font-semibold text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)] sm:col-start-2"
+                >
+                  Sign out
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeMobileMenu()
+                      onOpenLogin()
+                    }}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm font-semibold text-[var(--text)] transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+                  >
+                    Login
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeMobileMenu()
+                      onOpenRegister()
+                    }}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,var(--accent-2),#7cf7a2)] px-4 py-3 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5"
+                  >
+                    Register
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </header>
   )
 }

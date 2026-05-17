@@ -107,6 +107,11 @@ const courseCatalog: Record<Department, Record<Level, string[]>> = {
   },
 }
 
+const selectOptionStyle = {
+  backgroundColor: '#ffffff',
+  color: '#081120',
+}
+
 type DemoAttendancePageProps = {
   liveScanTotal: string
   verifiedEntries: string
@@ -239,7 +244,7 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
                       }}
                     >
                       {departmentOptions.map((item) => (
-                        <option key={item} value={item}>
+                        <option key={item} value={item} style={selectOptionStyle}>
                           {item}
                         </option>
                       ))}
@@ -261,7 +266,7 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
                       }}
                     >
                       {levelOptions.map((item) => (
-                        <option key={item} value={item}>
+                        <option key={item} value={item} style={selectOptionStyle}>
                           {item}
                         </option>
                       ))}
@@ -283,7 +288,7 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
                       }}
                     >
                       {availableCourses.map((item) => (
-                        <option key={item} value={item}>
+                        <option key={item} value={item} style={selectOptionStyle}>
                           {item}
                         </option>
                       ))}

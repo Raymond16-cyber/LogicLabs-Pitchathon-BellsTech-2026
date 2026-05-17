@@ -210,16 +210,16 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface-soft)] p-5 sm:p-6">
+            <div className="rounded-4xl border border-(--border) bg-(--surface-soft) p-5 sm:p-6">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(34,197,94,0.14)] text-[var(--accent-2)]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(34,197,94,0.14)] text-(--accent-2)">
                   <ScanLine className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--muted)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-(--muted)">
                     Attendance form
                   </p>
-                  <h2 className="mt-1 text-2xl font-semibold text-[var(--text)]">
+                  <h2 className="mt-1 text-2xl font-semibold text-(--text)">
                     Filter by department, level, and course
                   </h2>
                 </div>
@@ -227,7 +227,7 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
 
               <div className="mt-6 grid gap-4 md:grid-cols-3">
                 <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
+                  <span className="text-xs font-semibold uppercase tracking-[0.28em] text-(--muted)">
                     Department
                   </span>
                   <div className="relative">
@@ -244,12 +244,12 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
+                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-(--muted)" />
                   </div>
                 </label>
 
                 <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
+                  <span className="text-xs font-semibold uppercase tracking-[0.28em] text-(--muted)">
                     Level
                   </span>
                   <div className="relative">
@@ -266,12 +266,12 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
+                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-(--muted)" />
                   </div>
                 </label>
 
                 <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
+                  <span className="text-xs font-semibold uppercase tracking-[0.28em] text-(--muted)">
                     Course
                   </span>
                   <div className="relative">
@@ -288,12 +288,12 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
+                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-(--muted)" />
                   </div>
                 </label>
               </div>
 
-              <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
+              <p className="mt-4 text-sm leading-7 text-(--muted)">
                 Course options refresh automatically when you change the department or level.
               </p>
 
@@ -309,13 +309,13 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface-soft)] p-5 sm:p-6">
+            <div className="rounded-4xl border border-(--border) bg-(--surface-soft) p-5 sm:p-6">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--muted)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-(--muted)">
                     Latest result
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold text-[var(--text)]">Attendance record</h2>
+                  <h2 className="mt-2 text-2xl font-semibold text-(--text)">Attendance record</h2>
                 </div>
                 <span className="status-chip green">
                   <BadgeCheck className="h-4 w-4" />
@@ -324,12 +324,12 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
               </div>
 
               {latestAttendance ? (
-                <div className="mt-5 rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-strong)] p-5">
+                <div className="mt-5 rounded-[1.75rem] border border-(--border) bg-(--surface-strong) p-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.32em] text-[var(--muted)]">Generated ID</p>
-                      <h3 className="mt-2 text-2xl font-semibold text-[var(--text)]">{latestAttendance.id}</h3>
-                      <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                      <p className="text-xs uppercase tracking-[0.32em] text-(--muted)">Generated ID</p>
+                      <h3 className="mt-2 text-2xl font-semibold text-(--text)">{latestAttendance.id}</h3>
+                      <p className="mt-2 text-sm leading-7 text-(--muted)">
                         {latestAttendance.department} | {latestAttendance.level}
                       </p>
                     </div>
@@ -341,25 +341,25 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
                   </div>
 
                   <div className="mt-5 grid gap-3">
-                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                      <div className="flex items-center gap-2 text-[var(--accent-2)]">
+                    <div className="rounded-2xl border border-(--border) bg-(--surface-soft) p-4">
+                      <div className="flex items-center gap-2 text-(--accent-2)">
                         <GraduationCap className="h-4 w-4" />
-                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
+                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-(--muted)">
                           Course
                         </p>
                       </div>
-                      <p className="mt-3 text-lg font-semibold text-[var(--text)]">{latestAttendance.course}</p>
+                      <p className="mt-3 text-lg font-semibold text-(--text)">{latestAttendance.course}</p>
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                        <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">Time</p>
-                        <p className="mt-2 text-lg font-semibold text-[var(--text)]">{latestAttendance.time}</p>
+                      <div className="rounded-2xl border border-(--border) bg-(--surface-soft) p-4">
+                        <p className="text-xs uppercase tracking-[0.28em] text-(--muted)">Time</p>
+                        <p className="mt-2 text-lg font-semibold text-(--text)">{latestAttendance.time}</p>
                       </div>
 
-                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                        <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">Status</p>
-                        <p className="mt-2 text-lg font-semibold text-[var(--text)]">
+                      <div className="rounded-2xl border border-(--border) bg-(--surface-soft) p-4">
+                        <p className="text-xs uppercase tracking-[0.28em] text-(--muted)">Status</p>
+                        <p className="mt-2 text-lg font-semibold text-(--text)">
                           {latestAttendance.status}
                         </p>
                       </div>
@@ -367,37 +367,34 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
                   </div>
                 </div>
               ) : (
-                <div className="mt-5 rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-strong)] p-5 text-sm leading-7 text-[var(--muted)]">
+                <div className="mt-5 rounded-[1.75rem] border border-(--border) bg-(--surface-strong) p-5 text-sm leading-7 text-(--muted)">
                   No attendance has been simulated yet. Select a department, level, and course, then click
                   Simulate attendance to generate the first record.
                 </div>
               )}
             </div>
 
-            <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface-soft)] p-5 sm:p-6">
+            <div className="rounded-4xl border border-(--border) bg-(--surface-soft) p-5 sm:p-6">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(56,189,248,0.14)] text-[var(--accent-3)]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(56,189,248,0.14)] text-(--accent-3)">
                   <Clock3 className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--muted)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-(--muted)">
                     Attendance history
                   </p>
-                  <h3 className="mt-1 text-2xl font-semibold text-[var(--text)]">Recent simulated records</h3>
+                  <h3 className="mt-1 text-2xl font-semibold text-(--text)">Recent simulated records</h3>
                 </div>
               </div>
 
               <div className="mt-5 space-y-3">
                 {attendanceLog.length ? (
                   attendanceLog.map((record) => (
-                    <article
-                      key={record.id}
-                      className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-strong)] p-4"
-                    >
+                    <article key={record.id} className="rounded-3xl border border-(--border) bg-(--surface-strong) p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="font-semibold text-[var(--text)]">{record.course}</p>
-                          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                          <p className="font-semibold text-(--text)">{record.course}</p>
+                          <p className="mt-1 text-sm leading-6 text-(--muted)">
                             {record.department} | {record.level}
                           </p>
                         </div>
@@ -408,18 +405,18 @@ function DemoAttendancePage({ liveScanTotal, verifiedEntries }: DemoAttendancePa
                         </span>
                       </div>
 
-                      <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
-                        <span className="rounded-full border border-[var(--border)] px-3 py-1">
+                      <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-(--muted)">
+                        <span className="rounded-full border border-(--border) px-3 py-1">
                           {record.id}
                         </span>
-                        <span className="rounded-full border border-[var(--border)] px-3 py-1">
+                        <span className="rounded-full border border-(--border) px-3 py-1">
                           {record.time}
                         </span>
                       </div>
                     </article>
                   ))
                 ) : (
-                  <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-strong)] p-4 text-sm leading-7 text-[var(--muted)]">
+                  <div className="rounded-3xl border border-(--border) bg-(--surface-strong) p-4 text-sm leading-7 text-(--muted)">
                     Your simulated attendance entries will appear here after you generate the first record.
                   </div>
                 )}

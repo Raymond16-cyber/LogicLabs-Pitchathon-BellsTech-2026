@@ -8,11 +8,13 @@ import {
   Fingerprint,
   LayoutDashboard,
   MoonStar,
+  Menu,
   Search,
   RefreshCw,
   SlidersHorizontal,
   MapPin,
   ShieldCheck,
+  X,
   SunMedium,
   Users,
 } from 'lucide-react'
@@ -100,6 +102,7 @@ function DashboardPage({
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'IN' | 'OUT'>('all')
   const [gateFilter, setGateFilter] = useState('all')
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const recentScans = summary?.recentScans ?? []
   const operationsPanels = summary?.operationsPanels ?? fallbackPanels
@@ -136,7 +139,7 @@ function DashboardPage({
   return (
     <div className="app-shell min-h-screen overflow-hidden">
       <div className="mx-auto min-h-screen max-w-7xl px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-        <header className="panel rounded-[2rem] px-4 py-4 sm:px-5">
+        <header className="panel relative rounded-4xl px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
@@ -156,7 +159,8 @@ function DashboardPage({
               </div>
             </button>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3">
+              <div className="hidden flex-wrap items-center gap-3 sm:flex">
               <span className={isConnected ? 'status-chip green' : 'status-chip purple'}>
                 <span className="h-2 w-2 rounded-full bg-current" />
                 {isConnected ? 'Dashboard online' : isLoading ? 'Syncing feed' : 'Preview mode'}
@@ -194,8 +198,87 @@ function DashboardPage({
               >
                 Sign Out
               </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen((open) => !open)}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-(--border) bg-(--surface-soft) text-(--text) transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)] sm:hidden"
+                aria-label={isMobileMenuOpen ? 'Close dashboard menu' : 'Open dashboard menu'}
+                aria-expanded={isMobileMenuOpen}
+                aria-controls="dashboard-mobile-menu"
+              >
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
             </div>
           </div>
+
+          {isMobileMenuOpen ? (
+            <div
+              id="dashboard-mobile-menu"
+              className="mt-4 grid gap-3 rounded-3xl border border-(--border) bg-(--surface-strong) p-4 sm:hidden"
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigateHome()
+                  setIsMobileMenuOpen(false)
+                }}
+                className="inline-flex items-center gap-2 rounded-2xl border border-(--border) bg-(--surface-soft) px-4 py-3 text-sm font-semibold text-(--text) transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back home
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onRefresh()
+                  setIsMobileMenuOpen(false)
+                }}
+                className="inline-flex items-center gap-2 rounded-2xl border border-(--border) bg-(--surface-soft) px-4 py-3 text-sm font-semibold text-(--text) transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh feed
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onSimulateScan()
+                  setIsMobileMenuOpen(false)
+                }}
+                className="inline-flex items-center gap-2 rounded-2xl border border-(--border) bg-(--surface-soft) px-4 py-3 text-sm font-semibold text-(--text) transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+              >
+                <Fingerprint className="h-4 w-4" />
+                Simulate scan
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleTheme()
+                  setIsMobileMenuOpen(false)
+                }}
+                className="inline-flex items-center gap-2 rounded-2xl border border-(--border) bg-(--surface-soft) px-4 py-3 text-sm font-semibold text-(--text) transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                <ThemeIcon className="h-4 w-4" />
+                Toggle theme
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onSignOut()
+                  setIsMobileMenuOpen(false)
+                }}
+                className="inline-flex items-center gap-2 rounded-2xl border border-(--border) bg-(--surface-soft) px-4 py-3 text-sm font-semibold text-(--text) transition hover:-translate-y-0.5 hover:border-[rgba(34,197,94,0.35)]"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : null}
         </header>
 
         <main className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] xl:items-start">
